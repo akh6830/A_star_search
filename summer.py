@@ -2,9 +2,8 @@
 Author: Min Kyi Htun
 """
 
-from math import *
 from queue import PriorityQueue
-
+from math import *
 from PIL import Image
 
 import Orienteering
@@ -28,11 +27,11 @@ def getNeightbors(x, y, x_edge, y_edge):
     """
     return [(x2, y2) for x2 in range(x - 1, x + 2)
             for y2 in range(y - 1, y + 2)
-            if (-1 < x <= x_edge and
-                -1 < y <= y_edge and
+            if (-1 < x <= x_edge - 1 and
+                -1 < y <= y_edge - 1 and
                 (x != x2 or y != y2) and
-                (0 <= x2 <= x_edge) and
-                (0 <= y2 <= y_edge))]
+                (0 <= x2 <= x_edge - 1) and
+                (0 <= y2 <= y_edge - 1))]
 
 
 def search_path(start, final):
@@ -75,3 +74,13 @@ def search_path(start, final):
                 predecessors[neighbor] = cur_pix
 
     return path
+
+
+def get_total_path_len(path):
+    distance = 0
+    for i in range(len(path)-1):
+        startx = path[i][0]
+        starty = path[i][1]
+        endx = path[i+1][0]
+        endy = path[i+1][1]
+        distance_between_pix = sqrt()

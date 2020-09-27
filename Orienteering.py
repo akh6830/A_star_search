@@ -1,9 +1,12 @@
 """
 Author : Min Kyi Htun
 """
-
-from PIL import Image, ImageDraw
+from math import *
+from PIL import ImageDraw
 from summer import *
+import winter
+import spring
+import sys
 
 SPEED = {(248, 148, 18): 8, (255, 192, 0): 3, (255, 255, 255): 7, (2, 208, 60): 5, (2, 136, 40): 2, (5, 73, 24): 1,
          (0, 0, 255): 4, (71, 51, 3): 10, (0, 0, 0): 9, (205, 0, 101): 0.1}
@@ -65,37 +68,43 @@ def calculateCost(next_pix, current_pix):
         distance = sqrt(((next_pix[0] - current_pix[0])*10.29)**2 +
                         ((next_pix[1]-current_pix[1])*7.55)**2)
     # consider the elevation in calculating distance
-    distance = sqrt(distance**2 + (float(ELEVATION[next_pix[0]][next_pix[1]]) -
-                                   float(ELEVATION[current_pix[0]][current_pix[1]]))**2)
+    distance = sqrt(distance**2 + (float(ELEVATION[next_pix[1]][next_pix[0]]) -
+                                   float(ELEVATION[current_pix[1]][current_pix[0]]))**2)
 
     speed = SPEED[PIXELS[current_pix[0], current_pix[1]]]
 
     # modify the speed if we have different elevation between two pixels
-    if float(ELEVATION[next_pix[0]][next_pix[1]]) == float(ELEVATION[current_pix[0]][current_pix[1]]):
+    if float(ELEVATION[next_pix[1]][next_pix[0]]) == float(ELEVATION[current_pix[1]][current_pix[0]]):
         pass
-    elif float(ELEVATION[next_pix[0]][next_pix[1]]) < float(ELEVATION[current_pix[0]][current_pix[1]]):
-        elevation_dif = float(ELEVATION[current_pix[0]][current_pix[1]]) - float(ELEVATION[next_pix[0]][next_pix[1]])
+    elif float(ELEVATION[next_pix[1]][next_pix[0]]) < float(ELEVATION[current_pix[1]][current_pix[0]]):
+        elevation_dif = float(ELEVATION[current_pix[1]][current_pix[0]]) - float(ELEVATION[next_pix[1]][next_pix[0]])
         speed = speed * (1 + (elevation_dif/100))
     else:
-        elevation_dif = float(ELEVATION[next_pix[0]][next_pix[1]]) - float(ELEVATION[current_pix[0]][current_pix[1]])
+        elevation_dif = float(ELEVATION[next_pix[1]][next_pix[0]]) - float(ELEVATION[current_pix[1]][current_pix[0]])
         speed = speed * (1 - (elevation_dif/100))
     time = distance/speed
     return time
 
 
-def draw_on_im(im, full_path, color):
+def draw_on_im(im, full_path, color, output_f):
     drawing = ImageDraw.Draw(im)
     drawing.line(full_path, fill=color, width=1)
+    im.save(output_f, "PNG")
     im.show()
 
 
 def main():
-    season = "summer"
-    map_im = Image.open("terrain.PNG").convert('RGB')
+    terrain = sys.argv[1]
+    ele_f = sys.argv[2]
+    path_f = sys.argv[3]
+    season = sys.argv[4]
+    output_f = sys.argv[5]
+    map_im = Image.open(terrain).convert('RGB')
     global PIXELS
     global ELEVATION
     global GOAL_POINTS
-    PIXELS, ELEVATION, GOAL_POINTS = processMap(map_im, "elevation.txt", "brown.txt")
+    global SPEED
+    PIXELS, ELEVATION, GOAL_POINTS = processMap(map_im, ele_f, path_f)
     full_path = []
 
     if season == "summer":
@@ -106,7 +115,41 @@ def main():
             start_tuple = (int(start[0]), int(start[1]))
             end_tuple = (int(end[0]), int(end[1]))
             full_path = full_path + search_path(start_tuple, end_tuple)
-        draw_on_im(map_im, full_path, (255, 0, 0))
+        draw_on_im(map_im, full_path, (255, 0, 0), output_f)
+
+    elif season == "winter":
+
+        water_edges = winter.get_water_edges()
+        winter.waterBFS(map_im, water_edges)
+        map_im = Image.open("winter.png")
+        # global SPEED
+        PIXELS, ELEVATION, GOAL_POINTS = processMap(map_im, "elevation.txt", "brown.txt")
+        SPEED[(0, 0, 255)] = 0.1
+        SPEED[(165, 242, 243)] = 5
+
+        for i in range(len(GOAL_POINTS)-1):
+            start = GOAL_POINTS[i]
+            end = GOAL_POINTS[i+1]
+            start_tuple = (int(start[0]), int(start[1]))
+            end_tuple = (int(end[0]), int(end[1]))
+            full_path = full_path + winter.search_path(start_tuple, end_tuple)
+        draw_on_im(map_im, full_path, (255, 0, 0), output_f)
+
+    elif season == "spring":
+        water_edges = winter.get_water_edges()
+        spring.springBFS(map_im, water_edges)
+        map_im = Image.open("spring.png")
+        # global SPEED
+        PIXELS, ELEVATION, GOAL_POINTS = processMap(map_im, "elevation.txt", "brown.txt")
+        SPEED[(144, 108, 63)] = 3
+
+        for i in range(len(GOAL_POINTS)-1):
+            start = GOAL_POINTS[i]
+            end = GOAL_POINTS[i+1]
+            start_tuple = (int(start[0]), int(start[1]))
+            end_tuple = (int(end[0]), int(end[1]))
+            full_path = full_path + spring.search_path(start_tuple, end_tuple)
+        draw_on_im(map_im, full_path, (255, 0, 0), output_f)
 
 
 if __name__ == '__main__':
